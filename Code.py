@@ -25,7 +25,7 @@ df = pd.read_csv(csv_filename)
 import matplotlib.pyplot as plt
 import seaborn as sns
 # sns.set(style='whitegrid', context='notebook')
-
+drop_elements = ['BloodPressure', 'SkinThickness', 'Insulin', 'Outcome']
 cols=['Pregnancies', 'Glucose','BloodPressure','SkinThickness','Insulin','BMI','DiabetesPedigreeFunction','Age','Outcome']
 # sns.pairplot(df[cols], size=2.5)
 # plt.show()
@@ -36,9 +36,9 @@ sns.set(font_scale=1)
 # hm = sns.heatmap(cm, cbar=True,annot=True,square=True,fmt='.2f',annot_kws={'size': 15},yticklabels=cols,xticklabels=cols)
 # plt.show()
 
-
-X = df.iloc[:, :-1].values
 y = df['Outcome'].values
+df = df.drop(drop_elements, axis=1)
+X = df.iloc[:, :].values
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
 
@@ -72,12 +72,12 @@ for f in range(X_train_std.shape[1]):
 # print df.info()
 
 #
-df.loc[df['Glucose'] <=110, 'Glucose'] = 0
-df.loc[df['Glucose'] >110, 'Glucose'] = 1
+# df.loc[df['Glucose'] <=110, 'Glucose'] = 0
+# df.loc[df['Glucose'] >110, 'Glucose'] = 1
 # df['GlucoseLevel'] = pd.qcut(df['Glucose'], 3)
 # print (df[['GlucoseLevel', 'Outcome']].groupby(['GlucoseLevel'], as_index=False).sum())
 
-print df[['Glucose', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
+# print df[['Glucose', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
 
 # print '************************'
 #
@@ -85,13 +85,12 @@ print df[['Glucose', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
 #
 # print '++++++++++++++++++++++++++++'
 
-print df[['BMI', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-print df[['Age', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-print df[['Pregnancies', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-print df[['DiabetesPedigreeFunction', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-print df[['Insulin', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
+# print df[['BMI', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
+# print df[['Age', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
+# print df[['Pregnancies', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
+# print df[['DiabetesPedigreeFunction', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
+# print df[['Insulin', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
 
-drop_elements = ['BloodPressure', 'SkinThickness', 'Insulin', 'Outcome']
 # X_train = X_train.drop(drop_elements, axis=1)
 
 import matplotlib.pyplot as plt
