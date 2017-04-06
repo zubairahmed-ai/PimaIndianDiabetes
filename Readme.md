@@ -1,5 +1,7 @@
 ## This code gives highest accuracy as given below
 
+This code uses feature selection and then uses 
+
 ```
 LDA-74.07%
 LogisticRegression-73.33%
