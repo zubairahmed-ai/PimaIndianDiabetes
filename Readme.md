@@ -1,18 +1,18 @@
 ## This code gives highest accuracy as given below
 
-This code uses feature selection and then uses 
+This code uses feature selection and then uses all classifiers to get highest accuracy using LR as below
 
 ```
-LDA-74.07%
-LogisticRegression-73.33%
-GaussianNB-73.15%
-RandomForestClassifier-72.22%
-AdaBoostClassifier-71.85%
-QDA-71.30%
-GradientBoostingClassifier-70.74%
-DecisionTreeClassifier-64.63%
-KNeighborsClassifier-64.44%
-SVC-62.96%
+LogisticRegression-76.11%
+LDA-75.74%
+GaussianNB-74.81%
+QDA-74.07%
+RandomForestClassifier-72.78%
+AdaBoostClassifier-72.41%
+GradientBoostingClassifier-72.41%
+KNeighborsClassifier-70.00%
+DecisionTreeClassifier-63.70%
+SVC-62.04%
 
 
 ```
