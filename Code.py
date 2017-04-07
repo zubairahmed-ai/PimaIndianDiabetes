@@ -5,22 +5,15 @@ from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import ExtraTreesClassifier
 import  os
+from sklearn.cross_validation import KFold;
+import xgboost as xgb
+from sklearn.metrics import accuracy_score
+from sklearn.feature_selection import SelectFromModel
 
 # script.py
 current_file = os.path.abspath(os.path.dirname(__file__))
 csv_filename = os.path.join(current_file, 'data/pimaindiandiabetes.csv')
 df = pd.read_csv(csv_filename)
-
-# print len(df[df['Pregnancies'].isnull()])
-# print len(df[df['Glucose'].isnull()])
-# print len(df[df['BloodPressure'].isnull()])
-# print len(df[df['SkinThickness'].isnull()])
-# print len(df[df['Insulin'].isnull()])
-# print len(df[df['BMI'].isnull()])
-# print len(df[df['DiabetesPedigreeFunction'].isnull()])
-# print len(df[df['Age'] == 0])
-# print len(df[df['Outcome'].isnull()])
-
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -66,32 +59,6 @@ print("Feature ranking:")
 
 for f in range(X_train_std.shape[1]):
     print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-
-# summarize the selection of the attributes
-
-# print df.info()
-
-#
-# df.loc[df['Glucose'] <=110, 'Glucose'] = 0
-# df.loc[df['Glucose'] >110, 'Glucose'] = 1
-# df['GlucoseLevel'] = pd.qcut(df['Glucose'], 3)
-# print (df[['GlucoseLevel', 'Outcome']].groupby(['GlucoseLevel'], as_index=False).sum())
-
-# print df[['Glucose', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-
-# print '************************'
-#
-# print(pd.crosstab(df['Outcome'], df['Glucose']))
-#
-# print '++++++++++++++++++++++++++++'
-
-# print df[['BMI', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-# print df[['Age', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-# print df[['Pregnancies', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-# print df[['DiabetesPedigreeFunction', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-# print df[['Insulin', 'Outcome']].groupby(['Outcome'], as_index=False).mean()
-
-# X_train = X_train.drop(drop_elements, axis=1)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -162,3 +129,144 @@ sorted_dict = sorted(acc_dict.items(), key=itemgetter(1), reverse=True)
 
 for k, v in sorted_dict:
     print "{0}-{1:.2%}".format(k, v)
+
+ntrain = X_train.shape[0]
+ntest = y_test.shape[0]
+SEED = 0  # for reproducibility
+NFOLDS = 5  # set folds for out-of-fold prediction
+kf = KFold(ntrain, n_folds=NFOLDS, random_state=SEED)
+
+class SklearnHelper(object):
+    def __init__(self, clf, seed=0, params=None):
+        params['random_state'] = seed
+        self.clf = clf(**params)
+
+    def train(self, x_train, y_train):
+        self.clf.fit(x_train, y_train)
+
+    def predict(self, x):
+        return self.clf.predict(x)
+
+    def fit(self, x, y):
+        return self.clf.fit(x, y)
+
+    def feature_importances(self, x, y):
+        print(self.clf.fit(x, y).feature_importances_)
+
+def get_oof(clf, x_train, y_train, x_test):
+    oof_train = np.zeros((ntrain,))
+    oof_test = np.zeros((ntest,))
+    oof_test_skf = np.empty((NFOLDS, ntest))
+
+    for i, (train_index, test_index) in enumerate(kf):
+        x_tr = x_train[train_index]
+        y_tr = y_train[train_index]
+        x_te = x_train[test_index]
+
+        clf.train(x_tr, y_tr)
+
+        oof_train[test_index] = clf.predict(x_te)
+        oof_test_skf[i, :] = clf.predict(x_test)
+
+    oof_test[:] = oof_test_skf.mean(axis=0)
+    return oof_train.reshape(-1, 1), oof_test.reshape(-1, 1)
+
+
+# Put in our parameters for said classifiers
+# Random Forest parameters
+rf_params = {
+    'n_jobs': -1,
+    'n_estimators': 500,
+     # 'warm_start': True,
+     #'max_features': 0.2,
+    'max_depth': 6,
+    'min_samples_leaf': 2,
+    'max_features' : 'sqrt',
+    'verbose': 0
+}
+
+# Extra Trees Parameters
+et_params = {
+    'n_jobs': -1,
+    'n_estimators':500,
+    #'max_features': 0.5,
+    'max_depth': 8,
+    'min_samples_leaf': 2,
+    'verbose': 0
+}
+
+# AdaBoost parameters
+ada_params = {
+    'n_estimators': 500,
+    'learning_rate' : 0.75
+}
+
+# Gradient Boosting parameters
+gb_params = {
+    'n_estimators': 500,
+     #'max_features': 0.2,
+    'max_depth': 5,
+    'min_samples_leaf': 2,
+    'verbose': 0
+}
+lr_params = {}
+
+rf = SklearnHelper(clf=RandomForestClassifier, seed=SEED, params=rf_params)
+et = SklearnHelper(clf=ExtraTreesClassifier, seed=SEED, params=et_params)
+ada = SklearnHelper(clf=AdaBoostClassifier, seed=SEED, params=ada_params)
+gb = SklearnHelper(clf=GradientBoostingClassifier, seed=SEED, params=gb_params)
+lr = SklearnHelper(clf=LogisticRegression, seed=SEED, params=lr_params)
+
+# Create our OOF train and test predictions. These base results will be used as new features
+et_oof_train, et_oof_test = get_oof(et, X_train, y_train, X_test) # Extra Trees
+rf_oof_train, rf_oof_test = get_oof(rf, X_train, y_train, X_test) # Random Forest
+ada_oof_train, ada_oof_test = get_oof(ada, X_train, y_train, X_test) # AdaBoost
+gb_oof_train, gb_oof_test = get_oof(gb, X_train, y_train, X_test) # Gradient Boost
+lr_oof_train, lr_oof_test = get_oof(lr, X_train, y_train, X_test) # Logistic Regression
+
+print("Training is complete")
+
+base_predictions_train = pd.DataFrame( {'RandomForest': rf_oof_train.ravel(),
+     'ExtraTrees': et_oof_train.ravel(),
+     'AdaBoost': ada_oof_train.ravel(),
+      'GradientBoost': gb_oof_train.ravel(),
+      'LogisticRegression': lr_oof_train.ravel()
+    })
+
+x_train = np.concatenate(( et_oof_train, rf_oof_train, ada_oof_train, gb_oof_train, lr_oof_train), axis=1)
+x_test = np.concatenate(( et_oof_test, rf_oof_test, ada_oof_test, gb_oof_test, lr_oof_test), axis=1)
+
+gbm = xgb.XGBClassifier(
+    #learning_rate = 0.02,
+ n_estimators= 2000,
+ max_depth= 4,
+ min_child_weight= 2,
+ #gamma=1,
+ gamma=0.9,
+ subsample=0.8,
+ colsample_bytree=0.8,
+ objective= 'binary:logistic',
+ nthread= -1,
+ scale_pos_weight=1).fit(x_train, y_train)
+y_pred = gbm.predict(x_test)
+predictions = [round(value) for value in y_pred]
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: %.2f%%" % (accuracy * 100.0))
+# Fit model using each importance as a threshold
+
+# thresholds = sort(model.feature_importances_)
+thresholds = sorted(model.feature_importances_, reverse=True)
+
+for thresh in thresholds:
+	# select features using threshold
+	selection = SelectFromModel(model, threshold=thresh, prefit=True)
+	select_X_train = selection.transform(X_train)
+	# train model
+	selection_model = xgb.XGBClassifier()
+	selection_model.fit(select_X_train, y_train)
+	# eval model
+	select_X_test = selection.transform(X_test)
+	y_pred = selection_model.predict(select_X_test)
+	predictions = [round(value) for value in y_pred]
+	accuracy = accuracy_score(y_test, predictions)
+	print("Thresh=%.3f, n=%d, Accuracy: %.2f%%" % (thresh, select_X_train.shape[1], accuracy*100.0))
