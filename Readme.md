@@ -1,4 +1,6 @@
-## This code gives highest accuracy as given below
+## The code5.py uses PCA with categorizing some features and uses LogisticRegression to get accuracy of 77.92%
+
+## The code.py gives highest accuracy as given below using XGBoost
 
 The updated code uses Xgboost to get **highest accuracy of 79.63%**
 
