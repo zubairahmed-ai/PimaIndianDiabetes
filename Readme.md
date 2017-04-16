@@ -1,4 +1,5 @@
 #### The code6.py uses PCA with categorizing some features and uses Support Vertor Machine to get accuracy of 78.35%
+You can run the code here https://www.kaggle.com/zubairahmed/d/uciml/pima-indians-diabetes-database/78-35-with-pca-and-svm
 
 #### The code5.py uses PCA with categorizing some features and uses LogisticRegression to get accuracy of 77.92%
 
